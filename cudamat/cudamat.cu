@@ -2264,6 +2264,30 @@ extern int apply_softmax_grad(cudamat* mat, cudamat* labels, cudamat* target) {
 
     return 0;
 }
+extern int apply_softmax_grad_posteriors(cudamat* mat, cudamat* labels, cudamat* target) { 
+    unsigned int h = mat->size[0],
+                 w = mat->size[1];
+
+    if (!mat->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat->is_trans)
+        return ERROR_TRANSPOSED;
+
+    if (target->size[0] != h || target->size[1] != w)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+    if (labels->size[0] != h || labels->size[1] != w)
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+    
+    kSoftMaxGradPosteriors<<<NUM_VECTOR_OP_BLOCKS,NUM_VECTOR_OP_THREADS_PER_BLOCK>>>(mat->data_device, labels->data_device, target->data_device, w, h);
+
+    cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
+    return 0;
+}
 extern int get_softmax_correct(cudamat* mat, cudamat* labels, cudamat* target) { 
     unsigned int h = mat->size[0],
                  w = mat->size[1];
