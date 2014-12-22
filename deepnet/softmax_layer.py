@@ -27,12 +27,21 @@ class SoftmaxLayer(Layer):
     super(SoftmaxLayer, self).AllocateBatchsizeDependentMemory(batchsize)
     dimensions = self.dimensions
     numlabels = self.numlabels
-    self.data = cm.CUDAMatrix(np.zeros((dimensions, batchsize)))
+    if self.use_posteriors:
+      self.data = cm.CUDAMatrix(np.zeros((numlabels*dimensions, batchsize)))
+    else:
+      self.data = cm.CUDAMatrix(np.zeros((dimensions, batchsize)))
     self.deriv = cm.CUDAMatrix(np.zeros((numlabels*dimensions, batchsize)))
     self.batchsize_temp = cm.CUDAMatrix(np.zeros((dimensions, batchsize)))
 
   def GetData(self):
-    self.expansion_matrix.select_columns(self.data, target=self.state)
+    if self.use_posteriors:
+      self.state.assign(self.data)
+    else:
+      self.expansion_matrix.select_columns(self.data, target=self.state)
+    
+
+
 
   def GetLoss(self, get_deriv=False, **kwargs):
     """Compute loss and also deriv w.r.t to it if asked for.
@@ -55,11 +64,14 @@ class SoftmaxLayer(Layer):
 
     # Reshape to make each softmax be one column.
     state.reshape((numlabels, dimensions * batchsize))
-    data.reshape((1, dimensions * batchsize))
+
+    if self.use_posteriors:
+      data.reshape((numlabels,dimensions * batchsize))
+    else:
+      data.reshape((1, dimensions * batchsize))
 
     if self.loss_function == deepnet_pb2.Layer.CROSS_ENTROPY:
       temp = self.batchsize_temp
-      
       # Compute correct predictions.
       state.get_softmax_correct(data, target=temp)
       perf.correct_preds = temp.sum()
@@ -73,7 +85,11 @@ class SoftmaxLayer(Layer):
         state.apply_softmax_grad(data, target=self.deriv)
 
     elif self.loss_function == deepnet_pb2.Layer.SQUARED_LOSS:
-      state.apply_softmax_grad(data, target=self.deriv)
+
+      if self.use_posteriors:
+        state.apply_softmax_grad_posteriors(data, target=self.deriv)
+      else:
+        state.apply_softmax_grad(data, target=self.deriv)
       error = self.deriv.euclid_norm()**2
       perf.error = error
     else:
@@ -81,7 +97,10 @@ class SoftmaxLayer(Layer):
     
     # Restore shapes.
     state.reshape((numlabels * dimensions, batchsize))
-    data.reshape((dimensions, batchsize))
+    if self.use_posteriors:
+      data.reshape((numlabels * dimensions, batchsize))
+    else:
+      data.reshape((dimensions, batchsize))
     
     return perf
 
