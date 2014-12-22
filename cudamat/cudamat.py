@@ -1335,6 +1335,25 @@ class CUDAMatrix(object):
 
         return target
 
+    def apply_softmax_grad_posteriors(self, labels, target = None):
+        """
+        Apply softmax derivative, where labels are the correct labels.
+        """
+        if not target:
+            target = self
+
+        assert labels.shape == self.shape
+        assert target.shape == self.shape
+        if isinstance(labels, CUDAMatrix):
+            err_code = _cudamat.apply_softmax_grad_posteriors(self.p_mat, labels.p_mat, target.p_mat)
+        else:
+            raise ValueError, "labels must be of type CUDAMatrix."
+
+        if err_code:
+            raise generate_exception(err_code)
+
+        return target
+
 
     def apply_logistic_deriv(self, val, target = None):
         """
