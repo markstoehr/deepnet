@@ -445,6 +445,14 @@ _LAYER = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='use_posteriors', full_name='deepnet.Layer.use_posteriors', index=18,
+      number=20, type=8, cpp_type=7, label=1,
+      has_default_value=True, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+
   ],
   extensions=[
   ],
