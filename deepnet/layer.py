@@ -34,6 +34,7 @@ class Layer(Parameter):
     self.is_output = proto.is_output
     self.loss_function = proto.loss_function
     self.loss_weight = proto.loss_weight
+    self.use_posteriors = proto.use_posteriors
     self.train_data_handler = None
     self.validation_data_handler = None
     self.test_data_handler = None
